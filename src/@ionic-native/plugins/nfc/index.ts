@@ -3,6 +3,11 @@ import { Plugin, Cordova, IonicNativePlugin, CordovaProperty } from '@ionic-nati
 import { Observable } from 'rxjs/Observable';
 declare let window: any;
 
+// TODO naming
+// NfcEvent not NdefEvent
+// NfcTag not NdefTag
+// TODO replace number[] with Uint8Array and/or ArrayBuffer
+
 export interface NdefEvent {
   tag: NdefTag;
 }
@@ -244,6 +249,7 @@ export class NFC extends IonicNativePlugin {
   // The other callbacks use a promise, then send the results to the observable
   // Reader mode will never resolve the promise until the first tag is scanned
   // Reader mode needs to send multiple errors without ever canceling the promise
+  // For the current version, error is never called, but that could changed
   /**
    * Read NFC tags sending the tag data to the success callback.
    * 
@@ -254,11 +260,10 @@ export class NFC extends IonicNativePlugin {
    */
   @Cordova({
     observable: true,
-    successIndex: 1,
-    errorIndex: 4,
+    errorIndex: 4,  // error never triggers clearFunction?, error never cancels observable?
     clearFunction: 'disableReaderMode'
   })
-  readerMode(flags: number, readCallback?: Function, errorCallback?: Function): Observable<any> { return; }
+  readerMode(flags: number): Observable<any> { return; }
 
   @Cordova()
   /**
