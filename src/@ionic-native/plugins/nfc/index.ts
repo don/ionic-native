@@ -24,6 +24,7 @@ export interface NdefTag {
   type: string;
 }
 
+// TODO this is incorrect. Share does not need to be in a listener
 /**
  * @name NFC
  * @description
@@ -116,6 +117,8 @@ export class NFC extends IonicNativePlugin {
   })
   addTagDiscoveredListener(onSuccess?: Function, onFailure?: Function): Observable<any> { return; }
 
+  // TODO fix error index
+  // TODO do not remove on error
   /**
    * Registers an event listener for NDEF tags matching a specified MIME type.
    * @param mimeType
@@ -235,6 +238,87 @@ export class NFC extends IonicNativePlugin {
   @Cordova({ sync: true })
   bytesToHexString(bytes: number[]): string { return; };
 
+
+
+  // TODO this can't work like the other callbacks
+  // The other callbacks use a promise, then send the results to the observable
+  // Reader mode will never resolve the promise until the first tag is scanned
+  // Reader mode needs to send multiple errors without ever canceling the promise
+  /**
+   * Read NFC tags sending the tag data to the success callback.
+   * 
+   * @param flags flags indicating poll technologies and other optional parameters
+   * @param readCallback
+   * @param errorCallback
+   * @returns {Observable<any>}
+   */
+  @Cordova({
+    observable: true,
+    successIndex: 1,
+    errorIndex: 4,
+    clearFunction: 'disableReaderMode'
+  })
+  readerMode(flags: number, readCallback?: Function, errorCallback?: Function): Observable<any> { return; }
+
+  @Cordova()
+  /**
+   * Disable NFC reader mode.
+   */
+  disableReaderMode(successCallback?: Function, errorCallback?: Function): Promise<any> { return; }
+
+  @Cordova()
+  /**
+   * Connect to the tag and enable I/O operations to the tag from this TagTechnology object.
+   * 
+   * The function `connect` enables I/O operations to the tag from this TagTechnology object. 
+   * `nfc.connect` should be called after receiving a `nfcEvent` from the `addTagDiscoveredListener`.
+   * Only one TagTechnology object can be connected to a Tag at a time.
+   * 
+   * See Android's [TagTechnology.connect()](https://developer.android.com/reference/android/nfc/tech/TagTechnology#connect()) for more info.
+   * 
+   * @param tech The tag technology e.g. android.nfc.tech.IsoDep
+   * @param timeout The transceive(byte[]) timeout in milliseconds [optional]
+   */
+  connect(tech: string, timeout?: number): Promise<any> { return; }
+
+  /**
+   * Close Tag Technology connection opened by `nfc.connect`.
+   */
+  @Cordova()
+  close(): Promise<any> { return; }
+
+  /**
+   * Send a raw command to the NFC tag and receive the response.
+   * 
+   * Function `transceive` sends raw commands to the tag and receives the response. `nfc.connect` must be called before calling `transceive`.
+   *  Data passed to transceive can be a hex string representation of bytes or an ArrayBuffer. The response is returned as an ArrayBuffer in
+   *  the promise.
+   * 
+   * See Android's documentation [IsoDep.transceive()](https://developer.android.com/reference/android/nfc/tech/IsoDep#transceive(byte%5B%5D)),
+   *  [NfcV.transceive()](https://developer.android.com/reference/android/nfc/tech/NfcV#transceive(byte%5B%5D)),
+   *  [MifareUltralight.transceive()](https://developer.android.com/reference/android/nfc/tech/MifareUltralight#transceive(byte%5B%5D)) for more info.
+   * 
+   * @param data ArrayBuffer or string of HEX data
+   */
+  @Cordova()
+  transceive(data: ArrayBuffer | string): Promise<any> { return; }
+
+  // TODO make these an Enum or something?
+  @CordovaProperty
+  FLAG_READER_NFC_A: number;
+  @CordovaProperty
+  FLAG_READER_NFC_B: number;
+  @CordovaProperty
+  FLAG_READER_NFC_F: number;
+  @CordovaProperty
+  FLAG_READER_NFC_V: number;
+  @CordovaProperty
+  FLAG_READER_NFC_BARCODE: number;
+  @CordovaProperty
+  FLAG_READER_SKIP_NDEF_CHECK: number;
+  @CordovaProperty
+  FLAG_READER_NO_PLATFORM_SOUNDS: number;
+
 }
 /**
  * @hidden
@@ -291,16 +375,16 @@ export class Ndef extends IonicNativePlugin {
   record(tnf: number, type: number[] | string, id: number[] | string, payload: number[] | string): NdefRecord { return; }
 
   @Cordova({ sync: true })
-  textRecord(text: string, languageCode: string, id: number[] | string): NdefRecord { return; }
+  textRecord(text: string, languageCode?: string, id?: number[] | string): NdefRecord { return; }
 
   @Cordova({ sync: true })
-  uriRecord(uri: string, id: number[] | string): NdefRecord { return; }
+  uriRecord(uri: string, id?: number[] | string): NdefRecord { return; }
 
   @Cordova({ sync: true })
-  absoluteUriRecord(uri: string, payload: number[] | string, id: number[] | string): NdefRecord { return; }
+  absoluteUriRecord(uri: string, payload: number[] | string, id?: number[] | string): NdefRecord { return; }
 
   @Cordova({ sync: true })
-  mimeMediaRecord(mimeType: string, payload: string): NdefRecord { return; }
+  mimeMediaRecord(mimeType: string, payload: number[] | string, id?: number[] | string): NdefRecord { return; }
 
   @Cordova({ sync: true })
   smartPoster(ndefRecords: any[], id?: number[] | string ): NdefRecord { return; }
@@ -311,15 +395,19 @@ export class Ndef extends IonicNativePlugin {
   @Cordova({ sync: true })
   androidApplicationRecord(packageName: string): NdefRecord { return; }
 
+  // this is an internal function, applications shouldn't need it
   @Cordova({ sync: true })
   encodeMessage(ndefRecords: any): any { return; }
 
+  // this is an internal function, applications shouldn't need it
   @Cordova({ sync: true })
   decodeMessage(bytes: any): any { return; }
 
+  // this is an internal function, applications shouldn't need it
   @Cordova({ sync: true })
-  docodeTnf(tnf_byte: any): any { return; }
+  decodeTnf(tnf_byte: any): any { return; }
 
+  // this is an internal function, applications shouldn't need it
   @Cordova({ sync: true })
   encodeTnf(mb: any, me: any, cf: any, sr: any, il: any, tnf: any): any { return; }
 
@@ -361,6 +449,12 @@ export class NfcUtil extends IonicNativePlugin {
 
   @Cordova({ sync: true })
   isType(record: NdefRecord, tnf: number, type: number[]|string): boolean { return; }
+
+  @Cordova({ sync: true })
+  arrayBufferToHexString(buffer: ArrayBuffer): string { return; }
+
+  @Cordova({ sync: true })
+  hexStringToArrayBuffer(hexString: string): ArrayBuffer { return; }
 }
 
 export class TextHelper extends IonicNativePlugin {
