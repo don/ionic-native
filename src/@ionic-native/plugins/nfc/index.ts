@@ -4,14 +4,22 @@ import { Observable } from 'rxjs/Observable';
 declare let window: any;
 
 // TODO naming
+// Ndef should be NDEF (or NFC should be Nfc)
 // NfcEvent not NdefEvent
 // NfcTag not NdefTag
 // TODO replace number[] with Uint8Array and/or ArrayBuffer
 
+export interface NfcEvent {
+  tag: NfcTag;
+  type: string;
+}
+
+// DEPRECATED - Use NfcEvent
 export interface NdefEvent {
   tag: NdefTag;
 }
 
+// TODO can we use ArrayBuffer instead of number[]?
 export interface NdefRecord {
   id: any[];
   payload: number[];
@@ -19,6 +27,7 @@ export interface NdefRecord {
   type: number[];
 }
 
+// DEPRECATED - use NfcTag
 export interface NdefTag {
   canMakeReadOnly: boolean;
   id: number[];
@@ -27,6 +36,16 @@ export interface NdefTag {
   ndefMessage: NdefRecord[];
   techTypes: string[];
   type: string;
+}
+
+export interface NfcTag {
+  id?: number[];              // iOS doesn't allow access to the UID
+  techTypes?: string[];       // iOS doesn't return tech types
+  type?: string;              // iOS doesn't return tag meta data
+  canMakeReadOnly?: boolean; 
+  isWriteable?: boolean;
+  maxSize?: number;
+  ndefMessage?: NdefRecord[]; // not all tags are NDEF
 }
 
 // TODO this is incorrect. Share does not need to be in a listener
@@ -243,34 +262,6 @@ export class NFC extends IonicNativePlugin {
   @Cordova({ sync: true })
   bytesToHexString(bytes: number[]): string { return; };
 
-
-
-  // TODO this can't work like the other callbacks
-  // The other callbacks use a promise, then send the results to the observable
-  // Reader mode will never resolve the promise until the first tag is scanned
-  // Reader mode needs to send multiple errors without ever canceling the promise
-  // For the current version, error is never called, but that could changed
-  /**
-   * Read NFC tags sending the tag data to the success callback.
-   * 
-   * @param flags flags indicating poll technologies and other optional parameters
-   * @param readCallback
-   * @param errorCallback
-   * @returns {Observable<any>}
-   */
-  @Cordova({
-    observable: true,
-    errorIndex: 4,  // error never triggers clearFunction?, error never cancels observable?
-    clearFunction: 'disableReaderMode'
-  })
-  readerMode(flags: number): Observable<any> { return; }
-
-  @Cordova()
-  /**
-   * Disable NFC reader mode.
-   */
-  disableReaderMode(successCallback?: Function, errorCallback?: Function): Promise<any> { return; }
-
   @Cordova()
   /**
    * Connect to the tag and enable I/O operations to the tag from this TagTechnology object.
@@ -307,6 +298,35 @@ export class NFC extends IonicNativePlugin {
    */
   @Cordova()
   transceive(data: ArrayBuffer | string): Promise<any> { return; }
+
+  // TODO this can't work like the other callbacks
+  // The other callbacks use a promise, then send the results to the observable
+  // Reader mode will never resolve the promise until the first tag is scanned
+  // Reader mode needs to send multiple errors without ever canceling the promise
+  // For the current version, error is never called, but that could changed
+  // NOTE: currently the errorCallback is not used. If there 
+  /**
+   * Read NFC tags sending the tag data to the success callback.
+   * 
+   * @param flags flags indicating poll technologies and other optional parameters
+   * @param readCallback
+   * @param errorCallback
+   * @returns {Observable<any>}
+   */
+  @Cordova({
+    observable: true,
+    successIndex: 1,
+    errorIndex: 2,
+    clearFunction: 'disableReaderMode'
+  })
+  readerMode(flags: number): Observable<NfcTag> { return; }
+  //readerMode(flags: number, scanCallback: Function, errorCallback: Function): Observable<NfcTag> { return; }
+
+  @Cordova()
+  /**
+   * Disable NFC reader mode.
+   */
+  disableReaderMode(successCallback?: Function, errorCallback?: Function): Promise<any> { return; }
 
   // TODO make these an Enum or something?
   @CordovaProperty
